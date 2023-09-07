@@ -90,21 +90,24 @@ It is very important to be able to create queues in online processing systems to
 The solution begins by reading a JSON file from the resources directory and sending the JSON data to a Kafka topic line by line. Each line in the source file represents a single JSON event. Next, Spark Structured Streaming is initiated by creating a window on the Kafka topic, where it reads all the JSON records within the specified window duration. Afterward, all the necessary information is extracted from these JSON records, and the data is stored in a microbatch DataFrame within the Spark application's memory. In Spark, a DataFrame is essentially a distributed collection of data organized into named columns, similar in concept to a table in a relational database. This microbatch is then aggregated based on topic count and subsequently passed to the writeStream class for further computation using the trend ranking algorithm.
 the pseudocode for ranking algorithm which is based on z-score is as follow:
 
-### Ranking Algorithm (modified Z-Score)
+### Ranking Algorithm (Modified Z-Score)
 
->**if** this is first batch to be processed in kafka:  
->&nbsp;&nbsp;&nbsp;&nbsp;**avg** = topic_count and sqrAvg=topic_count <sup>2</sup> for each row in the microbatch DF;  
->&nbsp;&nbsp;&nbsp;&nbsp;save MicroBatch df in **TrendTable** in Spark warehouse;  
->**else**  
->&nbsp;&nbsp;&nbsp;&nbsp;retrieve **trend_table** from DB;  
->&nbsp;&nbsp;&nbsp;&nbsp;full outer join **trend_table** and **microbatchDF**  
->&nbsp;&nbsp;&nbsp;&nbsp;update avg and sqrAvg in trend_table based on new observation in microbatchDF:  
->&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**avg** = avg * decay + topic_count * (1 - decay)  
->&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**sqrAvg** = sqrAvg * decay + (topic_count <sup>2</sup>) * (1 - decay)  
->&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Overwrite **new trend_table** based on new avg and sqrAvg in DB;  
->&nbsp;&nbsp;&nbsp;&nbsp;compute **trendDF** based on new avg and sqrAvg and topic observation:  
->&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**topic_score** = (obs - avg) / std();  
->&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;compute final ranked df based on each topic score and store the result in postgres Sql;  
+**If this is the first batch to be processed in Kafka:**
+  - Calculate `avg` and `sqrAvg` for each row in the microbatch DF:
+    - `avg` = topic_count
+    - `sqrAvg` = topic_count^2
+  - Save the microbatch DF in the `TrendTable` in the Spark warehouse.
+
+**Otherwise:**
+  - Retrieve `trend_table` from the database.
+  - Perform a full outer join between `trend_table` and `microbatchDF`.
+  - Update `avg` and `sqrAvg` in `trend_table` based on new observations in `microbatchDF`:
+    - `avg` = avg * decay + topic_count * (1 - decay)
+    - `sqrAvg` = sqrAvg * decay + (topic_count^2) * (1 - decay)
+    - Overwrite the `trend_table` with the new `avg` and `sqrAvg` values in the database.
+  - Compute `trendDF` based on the new `avg`, `sqrAvg`, and topic observations:
+    - `topic_score` = (obs - avg) / std()
+  - Compute the final ranked DF based on each topic score and show the result.
 
 <p align="center">
   <img src = "Images/alg.jpg" width=80%>
@@ -117,7 +120,7 @@ the pseudocode for ranking algorithm which is based on z-score is as follow:
 
 Python| Spark|Kafka     
 --- | --- | ---
->=3| >=3| 3.0.0
+\>=3| >=3| 3.0.0
 
 ## Getting Started
 
